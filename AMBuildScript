@@ -74,7 +74,9 @@ class ExtensionConfig(object):
 
   def AddVersioning(self, binary, project):
     if binary.compiler.target.platform == 'windows':
-      binary.sources += ['version.rc']
+      binary.sources += [
+        os.path.join(builder.sourcePath, 'src', 'version.rc')
+      ]
       binary.compiler.rcdefines += [
         'PROJECT_NAME="{0}"'.format(project.name),
         'BINARY_NAME="{0}"'.format(binary.outputFile),
