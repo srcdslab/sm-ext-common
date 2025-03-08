@@ -40,7 +40,7 @@ class ExtensionConfig(object):
     self.generated_headers = None
     self.ext_root = None
     self.sdk_helper = None
-    self.hl2sdk_manifest_root = None
+    self.hl2sdk_manifests_path = None
     self.mms_root = None
     self.sm_root = None
     self.all_targets = []
@@ -132,16 +132,16 @@ class ExtensionConfig(object):
   def detectSDKs(self):
     sdk_list = builder.options.sdks.split(' ')
 
-    if builder.options.hl2sdk_manifest:
-      self.hl2sdk_manifest_root = os.path.realpath(builder.options.hl2sdk_manifest)
+    if builder.options.hl2sdk_manifests_path:
+      self.hl2sdk_manifests_path = os.path.realpath(builder.options.hl2sdk_manifests_path)
     else:
-      self.hl2sdk_manifest_root = ResolveEnvPath('HL2SDK_MANIFESTS', 'hl2sdk-manifests')
+      self.hl2sdk_manifests_path = ResolveEnvPath('HL2SDK_MANIFESTS', 'hl2sdk-manifests')
 
-    if not self.hl2sdk_manifest_root or not os.path.isdir(self.hl2sdk_manifest_root):
+    if not self.hl2sdk_manifests_path or not os.path.isdir(self.hl2sdk_manifests_path):
       raise Exception('Could not find a source copy of HL2SDK manifests')
-    self.hl2sdk_manifest_root = Normalize(self.hl2sdk_manifest_root)
+    self.hl2sdk_manifests_path = Normalize(self.hl2sdk_manifests_path)
 
-    hl2sdk_manifests_ambuild_path = os.path.join(self.hl2sdk_manifest_root, 'SdkHelpers.ambuild')
+    hl2sdk_manifests_ambuild_path = os.path.join(self.hl2sdk_manifests_path, 'SdkHelpers.ambuild')
     if not os.path.exists(hl2sdk_manifests_ambuild_path):
       raise Exception('Could not find SdkHelpers.ambuild in the given HL2SDK Manifest path!')
 

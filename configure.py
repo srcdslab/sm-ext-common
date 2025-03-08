@@ -8,7 +8,7 @@ parser.options.add_argument('--ext-root', type=str, dest='ext_root', default=Non
 		                   help='Root folder for extension')
 parser.options.add_argument('--hl2sdk-root', type=str, dest='hl2sdk_root', default=None,
 		                   help='Root search folder for HL2SDKs')
-parser.options.add_argument('--hl2sdk-manifest-path', type=str, dest='hl2sdk_manifest', default=None,
+parser.options.add_argument('--hl2sdk-manifests-path', type=str, dest='hl2sdk_manifests_path', default=None,
                        help='Path to HL2SDK Manifests')
 parser.options.add_argument('--mms-path', type=str, dest='mms_path', default=None,
                        help='Path to Metamod:Source')
