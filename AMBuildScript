@@ -38,6 +38,7 @@ class ExtensionConfig(object):
     self.binaries = []
     self.extensions = []
     self.generated_headers = None
+    self.ext_root = None
     self.sdk_helper = None
     self.hl2sdk_manifest_root = None
     self.mms_root = None
@@ -96,11 +97,12 @@ class ExtensionConfig(object):
     return 'Release'
 
   def detectProductVersion(self):
-    builder.AddConfigureFile('product.version')
+    product_version_path = os.path.join(self.ext_root, 'product.version')
+    builder.AddConfigureFile(product_version_path)
 
     # For OS X dylib versioning
     import re
-    with open(os.path.join(builder.sourcePath, 'product.version'), 'r') as fp:
+    with open(product_version_path, 'r') as fp:
       productContents = fp.read()
     m = re.match('(\\d+)\.(\\d+)\.(\\d+).*', productContents)
     if m == None:
@@ -119,6 +121,13 @@ class ExtensionConfig(object):
 
   def shouldIncludeSdk(self, sdk):
     return not sdk.get('source2', False)
+
+  def detectExtensionRoot(self):
+    if builder.options.ext_root:
+      self.ext_root = os.path.realpath(builder.options.ext_root)
+
+    if not self.ext_root or not os.path.isdir(self.ext_root):
+      raise Exception('Could not find a source copy of extension')
 
   def detectSDKs(self):
     sdk_list = builder.options.sdks.split(' ')
@@ -368,8 +377,10 @@ class ExtensionConfig(object):
 
   def ConfigureForExtension(self, context, compiler):
     compiler.cxxincludes += [
-      os.path.join(context.currentSourcePath),
-      os.path.join(context.currentSourcePath, 'sdk'),
+      os.path.join(context.sourcePath),
+      os.path.join(context.sourcePath, 'src'),
+      os.path.join(context.sourcePath, 'sdk'),
+      os.path.join(self.ext_root, 'src'),
       os.path.join(self.sm_root, 'public'),
       os.path.join(self.sm_root, 'public', 'extensions'),
       os.path.join(self.sm_root, 'sourcepawn', 'include'),
@@ -453,12 +464,13 @@ if getattr(builder, 'target', None) is not None:
     os._exit(1)
 
 Extension = ExtensionConfig()
+Extension.detectExtensionRoot()
 Extension.detectProductVersion()
 Extension.detectSDKs()
 Extension.configure()
 
 if Extension.use_auto_versioning():
-  Extension.generated_headers = builder.Build('buildbot/Versioning')
+  Extension.generated_headers = builder.Build('buildbot/Versioning', { 'Extension': Extension})
 
 if os.path.exists(os.path.join(Extension.sm_root, 'public', 'safetyhook')):
     # we need to pull safetyhook in locally because ambuild does not take kindly to outside relpaths
@@ -476,7 +488,7 @@ builder.targets = builder.CloneableList(Extension.all_targets)
 
 # Add additional buildscripts here
 BuildScripts = [
-  'src/AMBuilder',
+  os.path.join(Extension.ext_root, 'src', 'AMBuilder'),
   'buildbot/PackageScript',
   'buildbot/BreakpadSymbols'
 ]

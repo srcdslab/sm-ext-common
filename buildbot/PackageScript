@@ -1,29 +1,26 @@
-# vim: set ts=2 sw=2 tw=99 noet ft=python: 
 import os
 
 builder.SetBuildFolder('package')
 
 def CreateFolders(folders):
-	dict = {}
-	for folder in folders:
-		path = os.path.normpath(folder)
-		dict[folder] = builder.AddFolder(path)
-	return dict
+  folder_dict = {}
+  for folder in folders:
+    path = os.path.normpath(folder)
+    folder_dict[folder] = builder.AddFolder(path)
+  return folder_dict
 
-def CopyFiles(src, dest, filter_ext=None):
-  source_path = os.path.join(builder.sourcePath, src)
-  if os.path.isfile(source_path):
-    builder.AddCopy(source_path, dest)
+def CopyFiles(src, dest):
+  if os.path.isfile(src):
+    builder.AddCopy(src, dest)
     return
-  for entry in os.listdir(source_path):
-    entry_path = os.path.join(source_path, entry)
-    if not os.path.isfile(entry_path):
-      continue
-    if filter_ext:
-      _, ext = os.path.splitext(entry)
-      if filter_ext != ext:
-        continue
-    builder.AddCopy(entry_path, dest)
+
+  if os.path.isdir(src):
+    for root, _, files in os.walk(src):
+      for file in files:
+        file_path = os.path.join(root, file)
+        relative_path = os.path.relpath(file_path, src)
+        destination = os.path.join(dest, relative_path)
+        builder.AddCopy(file_path, destination)
 
 folders = CreateFolders([
   'addons/sourcemod/extensions',
@@ -42,8 +39,21 @@ for cxx_task in Extension.extensions:
   pdblog.write(cxx_task.debug.path + '\n')
 pdblog.close()
 
-CopyFiles('addons/sourcemod/gamedata/ssf.games.txt', folders['addons/sourcemod/gamedata'])
-CopyFiles('addons/sourcemod/extensions/sendsnapshotfixer.autoload', folders['addons/sourcemod/extensions'])
-CopyFiles('addons/sourcemod/extensions/sendsnapshotfixer.autoload', folders['addons/sourcemod/extensions/x64'])
+def distribute_package_files():
+  package_path = os.path.join(Extension.ext_root, "package")
+  if not os.path.isdir(package_path):
+    return
+
+  for root, _, files in os.walk(package_path):
+    for file in files:
+      file_path = os.path.join(root, file)
+      relative_path = os.path.relpath(file_path, package_path)
+
+      for folder in folders:
+        if relative_path.startswith(folder):
+          builder.AddCopy(file_path, folders[folder])
+          break
+
+distribute_package_files()
 
 debug_info = []
