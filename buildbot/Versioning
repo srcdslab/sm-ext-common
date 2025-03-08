@@ -8,7 +8,7 @@ includes = builder.AddFolder('includes')
 argv = [
   sys.executable,
   os.path.join(builder.sourcePath, 'buildbot', 'generate_header.py'),
-  os.path.join(builder.sourcePath),
+  os.path.join(Extension.ext_root),
   os.path.join(builder.buildPath, 'includes'),
 ]
 
@@ -16,20 +16,20 @@ outputs = [
   os.path.join(builder.buildFolder, 'includes', 'version_auto.h')
 ]
 
-repo_head_path = os.path.join(builder.sourcePath, 'product.version')
-if os.path.exists(os.path.join(builder.sourcePath, '.git')):
-  with open(os.path.join(builder.sourcePath, '.git', 'HEAD')) as fp:
+repo_head_path = os.path.join(Extension.ext_root, 'product.version')
+if os.path.exists(os.path.join(Extension.ext_root, '.git')):
+  with open(os.path.join(Extension.ext_root, '.git', 'HEAD')) as fp:
     head_contents = fp.read().strip()
     if re.search('^[a-fA-F0-9]{40}$', head_contents):
-      repo_head_path = os.path.join(builder.sourcePath, '.git', 'HEAD')
+      repo_head_path = os.path.join(Extension.ext_root, '.git', 'HEAD')
     else:
       git_state = head_contents.split(':')[1].strip()
-      repo_head_path = os.path.join(builder.sourcePath, '.git', git_state)
+      repo_head_path = os.path.join(Extension.ext_root, '.git', git_state)
       if not os.path.exists(repo_head_path):
-        repo_head_path = os.path.join(builder.sourcePath, '.git', 'HEAD')
+        repo_head_path = os.path.join(Extension.ext_root, '.git', 'HEAD')
 
 sources = [
-  os.path.join(builder.sourcePath, 'product.version'),
+  os.path.join(Extension.ext_root, 'product.version'),
   repo_head_path,
   argv[1]
 ]
