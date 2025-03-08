@@ -4,7 +4,7 @@ from ambuild2 import run
 
 parser = run.BuildParser(sourcePath = sys.path[0], api='2.2')
 
-parser.options.add_argument('--extension-root', type=str, dest='ext_root', default=None,
+parser.options.add_argument('--ext-root', type=str, dest='ext_root', default=None,
 		                   help='Root folder for extension')
 parser.options.add_argument('--hl2sdk-root', type=str, dest='hl2sdk_root', default=None,
 		                   help='Root search folder for HL2SDKs')
