@@ -9,7 +9,7 @@ if len(argv) < 2:
   sys.exit(1)
 
 SourceFolder = os.path.abspath(os.path.normpath(argv[0]))
-OutputFolder = os.path.normpath(argv[1])
+OutputFolder = os.path.abspath(os.path.normpath(argv[1]))
 
 def run_and_return(argv):
   text = subprocess.check_output(argv)
@@ -19,7 +19,7 @@ def run_and_return(argv):
 
 def GetGHVersion():
 	p = run_and_return(['hg', 'parent', '-R', SourceFolder])
-	m = re.match('changeset:\s+(\d+):(.+)', p.stdoutText)
+	m = re.match(r'changeset:\s+(\d+):(.+)', p.stdoutText)
 	if m == None:
 		raise Exception('Could not determine repository version')
 	return m.groups()
@@ -38,12 +38,13 @@ rev, cset =  GetGitVersion()
 productFile = open(os.path.join(SourceFolder, 'product.version'), 'r')
 productContents = productFile.read()
 productFile.close()
-m = re.match('(\d+)\.(\d+)\.(\d+)(.*)', productContents)
+m = re.match(r'(\d+)\.(\d+)\.(\d+)(.*)', productContents)
 if m == None:
-	raise Exception('Could not detremine product version')
+	raise Exception('Could not determine product version')
 major, minor, release, tag = m.groups()
 
-incFile = open(os.path.join(OutputFolder, 'version_auto.h'), 'w')
+version_auto_path = os.path.join(OutputFolder, 'version_auto.h')
+incFile = open(version_auto_path, 'w')
 incFile.write("""
 #ifndef _AUTO_VERSION_INFORMATION_H_
 #define _AUTO_VERSION_INFORMATION_H_
@@ -56,6 +57,7 @@ incFile.write("""
 """.format(tag, rev, cset, major, minor, release, major, minor, release))
 incFile.close()
 
-filename_versioning = open(os.path.join(OutputFolder, 'filename_versioning.txt'), 'w')
+filename_versioning_path = os.path.join(OutputFolder, 'filename_versioning.txt')
+filename_versioning = open(filename_versioning_path, 'w')
 filename_versioning.write("{0}.{1}.{2}-git{3}-{4}".format(major, minor, release, rev, cset))
 filename_versioning.close()

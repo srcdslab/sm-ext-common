@@ -106,7 +106,7 @@ class ExtensionConfig(object):
     import re
     with open(product_version_path, 'r') as fp:
       productContents = fp.read()
-    m = re.match('(\\d+)\.(\\d+)\.(\\d+).*', productContents)
+    m = re.match(r'(\\d+)\.(\\d+)\.(\\d+).*', productContents)
     if m == None:
       self.productVersion = '1.0.0'
     else:
@@ -117,9 +117,14 @@ class ExtensionConfig(object):
     dir_name = 'hl2sdk-{}'.format(sdk_name)
     if builder.options.hl2sdk_root:
       sdk_path = os.path.join(builder.options.hl2sdk_root, dir_name)
-      if os.path.exists(sdk_path):
-        return sdk_path
-    return ResolveEnvPath('HL2SDK{}'.format(sdk_name.upper()), dir_name)
+    else:
+      sdk_path = ResolveEnvPath('HL2SDK{}'.format(sdk_name.upper()), dir_name)
+
+    if not sdk_path or not os.path.isdir(sdk_path):
+      raise Exception('Could not find a source copy of HL2 SDK: {}'.format(sdk_name))
+    sdk_path = Normalize(sdk_path)
+
+    return sdk_path
 
   def shouldIncludeSdk(self, sdk):
     return not sdk.get('source2', False)
@@ -130,6 +135,7 @@ class ExtensionConfig(object):
 
     if not self.ext_root or not os.path.isdir(self.ext_root):
       raise Exception('Could not find a source copy of extension')
+    self.ext_root = Normalize(self.ext_root)
 
   def detectSDKs(self):
     sdk_list = builder.options.sdks.split(' ')
@@ -146,6 +152,7 @@ class ExtensionConfig(object):
     hl2sdk_manifests_ambuild_path = os.path.join(self.hl2sdk_manifests_path, 'SdkHelpers.ambuild')
     if not os.path.exists(hl2sdk_manifests_ambuild_path):
       raise Exception('Could not find SdkHelpers.ambuild in the given HL2SDK Manifest path!')
+    hl2sdk_manifests_ambuild_path = Normalize(hl2sdk_manifests_ambuild_path)
 
     self.sdk_helper = builder.Eval(hl2sdk_manifests_ambuild_path, {
       'Project': 'sm-extension'
@@ -377,8 +384,8 @@ class ExtensionConfig(object):
   def configure_windows(self, cxx):
     cxx.defines += ['WIN32', '_WINDOWS']
 
-  def ConfigureForExtension(self, context, compiler):
-    compiler.cxxincludes += [
+  def ConfigureForExtension(self, context, binary):
+    binary.compiler.cxxincludes += [
       os.path.join(context.sourcePath),
       os.path.join(context.sourcePath, 'src'),
       os.path.join(context.sourcePath, 'sdk'),
@@ -389,7 +396,7 @@ class ExtensionConfig(object):
       os.path.join(self.sm_root, 'public', 'amtl', 'amtl'),
       os.path.join(self.sm_root, 'public', 'amtl'),
     ]
-    return compiler
+    return binary
 
   def ConfigureForHL2(self, context, binary, sdk):
     compiler = binary.compiler
@@ -408,6 +415,8 @@ class ExtensionConfig(object):
     compiler.defines += defines
 
     self.sdk_helper.configureCxx(context, binary, sdk)
+    for i in range(len(compiler.cxxincludes)):
+        compiler.cxxincludes[i] = Normalize(compiler.cxxincludes[i])
 
     return binary
 
@@ -452,7 +461,7 @@ class ExtensionConfig(object):
                                '{0} - {1} {2}'.format(self.tag, sdk['name'], compiler.target.arch))
     self.AddVersioning(binary, project)
     self.ConfigureForHL2(context, binary, sdk)
-    self.ConfigureForExtension(context, binary.compiler)
+    self.ConfigureForExtension(context, binary)
     return binary
 
 class SafetyHookShim(object):
@@ -472,27 +481,35 @@ Extension.detectSDKs()
 Extension.configure()
 
 if Extension.use_auto_versioning():
-  Extension.generated_headers = builder.Build('buildbot/Versioning', { 'Extension': Extension})
+  Extension.generated_headers = builder.Build(os.path.join('buildbot', 'Versioning'), { 'Extension': Extension })
 
 if os.path.exists(os.path.join(Extension.sm_root, 'public', 'safetyhook')):
     # we need to pull safetyhook in locally because ambuild does not take kindly to outside relpaths
-    safetyhook_dest = Normalize(builder.sourcePath + '/safetyhook/')
+    safetyhook_dest = os.path.join(builder.sourcePath, 'safetyhook')
     shutil.copytree(os.path.join(Extension.sm_root, 'public', 'safetyhook'), safetyhook_dest, dirs_exist_ok=True)
 
     SafetyHook = SafetyHookShim()
     SafetyHook.all_targets = Extension.all_targets
-    builder.Build('safetyhook/AMBuilder', {'SafetyHook': SafetyHook })
+    builder.Build(os.path.join('safetyhook', 'AMBuilder'), { 'SafetyHook': SafetyHook })
     Extension.libsafetyhook = SafetyHook.libsafetyhook
 
 # This will clone the list and each cxx object as we recurse, preventing child
 # scripts from messing up global state.
 builder.targets = builder.CloneableList(Extension.all_targets)
 
+# Hack to please ambuild because it does not handle having outside ambuilder
+# https://github.com/alliedmodders/ambuild/blob/7736f4b155851fa354d88a6d9103e284c7d7ddc7/ambuild2/frontend/v2_2/cpp/builders.py#L298
+# self.outputPath is wrongly built
+ext_ambuilder_src_path = os.path.join(Extension.ext_root, 'src', 'AMBuilder')
+ext_ambuilder_dest_path = os.path.join('src', 'AMBuilder')
+if os.path.exists(ext_ambuilder_src_path):
+  shutil.copy(ext_ambuilder_src_path, ext_ambuilder_dest_path)
+
 # Add additional buildscripts here
 BuildScripts = [
-  os.path.join(Extension.ext_root, 'src', 'AMBuilder'),
-  'buildbot/PackageScript',
-  'buildbot/BreakpadSymbols'
+  ext_ambuilder_dest_path,
+  os.path.join('buildbot', 'PackageScript'),
+  os.path.join('buildbot', 'BreakpadSymbols'),
 ]
 
 builder.Build(BuildScripts, { 'Extension': Extension })
