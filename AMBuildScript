@@ -501,13 +501,13 @@ builder.targets = builder.CloneableList(Extension.all_targets)
 # https://github.com/alliedmodders/ambuild/blob/7736f4b155851fa354d88a6d9103e284c7d7ddc7/ambuild2/frontend/v2_2/cpp/builders.py#L298
 # self.outputPath is wrongly built
 ext_ambuilder_src_path = os.path.join(Extension.ext_root, 'src', 'AMBuilder')
-ext_ambuilder_dest_path = os.path.join('src', 'AMBuilder')
+ext_ambuilder_dest_path = os.path.join(builder.sourcePath, 'src', 'AMBuilder')
 if os.path.exists(ext_ambuilder_src_path):
   shutil.copy(ext_ambuilder_src_path, ext_ambuilder_dest_path)
 
 # Add additional buildscripts here
 BuildScripts = [
-  ext_ambuilder_dest_path,
+  os.path.join('src', 'AMBuilder'),
   os.path.join('buildbot', 'PackageScript'),
   os.path.join('buildbot', 'BreakpadSymbols'),
 ]
