@@ -30,12 +30,21 @@ folders = CreateFolders([
   'addons/sourcemod/scripting/include'
 ])
 
+# Metamod:Source plugins load <file>_i486.so on x86 and <file>.x64.so on x86_64 from the
+# same folder, with a .vdf in addons/metamod (shipped from the extension's package/ folder).
+mm_folders = sorted(set(folder for _, folder in Extension.mm_plugins))
+if mm_folders:
+  folders.update(CreateFolders(['addons/metamod'] + ['addons/{}/bin'.format(f) for f in mm_folders]))
+
 pdblog = open(os.path.join(builder.buildPath, 'pdblog.txt'), 'wt')
 for cxx_task in Extension.extensions:
   if cxx_task.target.arch == 'x86_64':
     builder.AddCopy(cxx_task.binary, folders['addons/sourcemod/extensions/x64'])
   else:
     builder.AddCopy(cxx_task.binary, folders['addons/sourcemod/extensions'])
+  pdblog.write(cxx_task.debug.path + '\n')
+for cxx_task, folder in Extension.mm_plugins:
+  builder.AddCopy(cxx_task.binary, folders['addons/{}/bin'.format(folder)])
   pdblog.write(cxx_task.debug.path + '\n')
 pdblog.close()
 
