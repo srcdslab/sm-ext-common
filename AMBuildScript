@@ -37,6 +37,8 @@ class ExtensionConfig(object):
     self.sdk_targets = []
     self.binaries = []
     self.extensions = []
+    # Metamod:Source plugins: (binary task, folder) pairs, packaged as addons/<folder>/bin/<binary>
+    self.mm_plugins = []
     self.generated_headers = None
     self.ext_root = None
     self.sdk_helper = None
