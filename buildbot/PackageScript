@@ -53,15 +53,17 @@ def distribute_package_files():
   if not os.path.isdir(package_path):
     return
 
+  # Same tree as package/: a file keeps its sub-folder (scripting/include, translations...).
   for root, _, files in os.walk(package_path):
+    if not files:
+      continue
+    relative_folder = os.path.relpath(root, package_path)
+    if relative_folder == os.curdir:
+      dest = '.'
+    else:
+      dest = builder.AddFolder(relative_folder)
     for file in files:
-      file_path = os.path.join(root, file)
-      relative_path = os.path.relpath(file_path, package_path)
-
-      for folder in folders:
-        if relative_path.startswith(folder):
-          builder.AddCopy(file_path, folders[folder])
-          break
+      builder.AddCopy(os.path.join(root, file), dest)
 
 distribute_package_files()
 
